@@ -72,7 +72,7 @@ def getfilepaths(ext, **kwargs):
     if not fname or not isinstance(fname, str):
         return []
     all_drives = getdrives()[0]
-    all_drives = '.'
+    # all_drives = '.'
 
     for root, dirs, files in tqdm(os.walk(all_drives, topdown=True)):
         for name in files[:]:
