@@ -73,15 +73,16 @@ def getfilepaths(ext, **kwargs):
         return []
     all_drives = getdrives()
     # all_drives = '.'
-
-    for root, dirs, files in tqdm(os.walk(all_drives, topdown=True)):
-        for name in files[:]:
-            if name.lower().find(fname.lower()) == -1:
-                continue
-            extn = os.path.splitext(name)[-1].lower()
-            if extn == ext:
-                logging.info("file:" + os.path.join(root, name))
-                yield os.path.join(root, name)
+    for drive in all_drives:
+        logging.info("Scanning Drive: "+drive)
+        for root, dirs, files in tqdm(os.walk(drive, topdown=True)):
+            for name in files[:]:
+                if name.lower().find(fname.lower()) == -1:
+                    continue
+                extn = os.path.splitext(name)[-1].lower()
+                if extn == ext:
+                    logging.info("file:" + os.path.join(root, name))
+                    yield os.path.join(root, name)
 
 
 def readfile(ext, filepath):
