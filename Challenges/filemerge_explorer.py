@@ -1,5 +1,5 @@
 """
-Challenge on File merge explorer. 
+Challenge on File merge explorer.
 This is the code for searching and merging the files based on the given name.
 """
 
@@ -11,16 +11,27 @@ import PyPDF2
 
 from tkinter import *
 from tkinter import ttk
+from zipfile import ZipFile
 from docx import Document
 from tqdm import tqdm
 
 
-dt = datetime.datetime.now().strftime('%y-%m-%d_%a_%H:%M:%S')  # 21-04-10_Sat_20:53:19
-finalmerge = {'.txt': f'mergetxt_{dt}.txt', '.pdf': f'mergepdf_{dt}.pdf', '.docx': f'mergedocx_{dt}.docx'}
+def getdt():
+    return datetime.datetime.now().strftime('%y-%m-%d_%a_%H_%M_%S')  # 21-04-10_Sat_20_53_19
+
+
+# dt = datetime.datetime.now().strftime('%y-%m-%d_%a_%H_%M_%S')  # 21-04-10_Sat_20:53:19
+finalmerge = {'.txt': f'mergetxt_{getdt()}.txt', '.pdf': f'mergepdf_{getdt()}.pdf',
+              '.docx': f'mergedocx_{getdt()}.docx', '.doc': f'mergeddoc{getdt()}.doc',
+              'other': "SearchName"}
 
 allFilesPath = []
 # Initialising the logger file here.
-logging.basicConfig(filename='logtest_gui.log', level=logging.INFO, format='%(levelname)s %(asctime)s %(message)s')
+# logging.basicConfig(filename='logtest_gui.log', level=logging.INFO, format='%(levelname)s %(asctime)s %(message)s')
+logging.basicConfig(filename='logtest_gui.log',
+                    level=logging.INFO,
+                    format='%(asctime)s %(module)s %(name)s.%(funcName)s +%(lineno)s: %(levelname)-8s %(message)s',
+                    )
 
 
 def check_platform():
@@ -54,32 +65,35 @@ def getdrives():
         return available_drives
     elif platdct[cp] == "windows":
         import string
-        available_drives = [d+"://" for d in string.ascii_uppercase if os.path.exists(d+"://")]
+        available_drives = [d + "://" for d in string.ascii_uppercase if os.path.exists(d + "://")]
         logging.info(available_drives)
         return available_drives
     # TODO: for linux
     return None
 
 
-def getfilepaths(ext, **kwargs):
+def getfilepaths(**kwargs):
     """
     This is a generator function which searches for the input string in filepath and generates the filepath
     :param ext: extension to be passed
     :param kwargs: fname --> search string.
     :return: generates filepath
     """
-    fname = kwargs.get("fname", None)
-    if not fname or not isinstance(fname, str):
+    fname1 = kwargs.get("fname", None)
+
+    if not fname1:
         return []
+    fname, ext = '.'.join(fname1.split('.')[:-1]).lower(), fname1.split('.')[-1].lower()
+    logging.info(fname + "<==>" + ext)
     all_drives = getdrives()
-    # all_drives = '.'
     for drive in all_drives:
-        logging.info("Scanning Drive: "+drive)
+        logging.info("Scanning Drive: " + drive)
         for root, dirs, files in tqdm(os.walk(drive, topdown=True)):
             for name in files[:]:
-                if name.lower().find(fname.lower()) == -1:
+                if name.lower().find(fname) == -1:  # -1 for didn't match and 0 for match.
                     continue
-                extn = os.path.splitext(name)[-1].lower()
+                # else:
+                extn = os.path.splitext(name)[-1].lower()[1:]
                 if extn == ext:
                     logging.info("file:" + os.path.join(root, name))
                     yield os.path.join(root, name)
@@ -193,8 +207,8 @@ def combine_word_documents(files):
         sub_doc = Document(file)
 
         # Don't add a page break if you've reached the last file.
-        if index < len(files)-1:
-           sub_doc.add_page_break()
+        if index < len(files) - 1:
+            sub_doc.add_page_break()
 
         for element in sub_doc.element.body:
             merged_document.element.body.append(element)
@@ -209,13 +223,30 @@ def mergeFiles():
     """
 
     extn = cmb.get()
+    logging.info(allFilesPath)
     answer.delete(1.0, END)
-    if extn in ('.docx', '.doc'):
+
+    fname1 = entry.get()
+    fname, ext = '.'.join(fname1.split('.')[:-1]).lower(), fname1.split('.')[-1].lower()
+    if extn in ('.docx', '.doc') and ext in ('docx', 'doc'):
         combine_word_documents(allFilesPath)
-    else:
+    elif extn in ('.pdf', '.txt') and ext in ('pdf', 'txt'):
         for filepath in allFilesPath:
             cobj = readfile(extn, filepath)
             writefile(extn, cobj)
+    else:
+        logging.info("extension not matched., continuing for zipping the files ")
+        # fname, ext = '.'.join(fname1.split('.')[:-1]).lower(), fname1.split('.')[-1].lower()
+        try:
+            if len(allFilesPath) > 0:
+                with ZipFile(str(fname1) + "_" + getdt() + ".zip", 'w') as outzipfile:
+                    for file in allFilesPath:
+                        outzipfile.write(file)
+                logging.info("Files zipped and saved here. ")
+        except Exception as e:
+            logging.error("Failed to zip the files. ")
+            logging.exception(e)
+
     if len(allFilesPath) > 0:
         answer.delete(1.0, END)
         answer.insert(INSERT, f"Merged files successfully saved at {finalmerge[extn]}. ")
@@ -225,28 +256,30 @@ def mergeFiles():
     else:
         logging.info(f"NO files found to merge for given params {extn} and {entry.get()}")
         answer.insert(INSERT, "NO files found to merge. ")
-
+        print("No files to merge. ")
 
 
 def search_click(*args):
     logging.info(args)
     fname = entry.get()
-    extn = cmb.get()
-    logging.info("Selected extn: " + cmb.get())
-    logging.info("Filename to merge: " + fname)
+    # extn = cmb.get()
+    # logging.info("Selected extn: " + cmb.get())
+    logging.info("Filename to search: " + fname)
     answer.delete(1.0, END)
-    for idx, filepath in enumerate(getfilepaths(extn, fname=fname)):
+    # for idx, filepath in enumerate(getfilepaths(extn, fname=fname)):
+    for idx, filepath in enumerate(getfilepaths(fname=fname, search=True)):
         allFilesPath.append(filepath)
         answer.insert(INSERT, str(idx) + "==" + filepath + "\n")
         root.update()
-    if len(allFilesPath) >1:
+    if len(allFilesPath) > 0:
         answer.insert(INSERT, "...all the files displayed ....")
-    # answer.configure(state='disabled')
+        # answer.configure(state='disabled')
         logging.info("all Files displayed.... ")
         print("all Files displayed. ")
     else:
         logging.info("NO files found")
         answer.insert(INSERT, "NO files found yet. ")
+        print("NO files found yet")
 
 
 root = Tk()
@@ -254,16 +287,16 @@ root.title("Merge Explorer")
 
 topframe = Frame(root)
 topframe.pack(side=TOP)
-
-l1 = Label(topframe, text="Select the extension")
-l1.pack()
-extn_options = [".txt", ".pdf", ".docx", ".doc"]
-cmb = ttk.Combobox(topframe, value=extn_options, width=15)
-
-cmb.current(0)
-cmb.pack()
-
-cmb.bind("<<ComboboxSelected>>", search_click)
+#
+# l1 = Label(topframe, text="Select the extension")
+# l1.pack()
+# extn_options = [".txt", ".pdf", ".docx", ".doc"]
+# cmb = ttk.Combobox(topframe, value=extn_options, width=15)
+#
+# cmb.current(0)
+# cmb.pack()
+#
+# cmb.bind("<<ComboboxSelected>>", search_click)
 entry = Entry(topframe)
 entry.pack()
 
@@ -279,6 +312,16 @@ answer = Text(bottomframe, yscrollcommand=scroll.set, wrap=WORD)
 scroll.config(command=answer.yview)
 answer.pack()
 # if True:
+
+l1 = Label(bottomframe, text="Select the extension")
+l1.pack()
+extn_options = [".txt", ".pdf", ".docx", ".doc", 'other']
+cmb = ttk.Combobox(bottomframe, value=extn_options, width=15)
+
+cmb.current(-1)
+cmb.pack()
+
+# cmb.bind("<<ComboboxSelected>>", mergeFiles)
 button = Button(bottomframe, text="Merge", command=mergeFiles)
 button.pack()
 
