@@ -54,7 +54,7 @@ def getdrives():
         return available_drives
     elif platdct[cp] == "windows":
         import string
-        available_drives = [d for d in string.ascii_uppercase if os.path.exists(d)]
+        available_drives = [d+"://" for d in string.ascii_uppercase if os.path.exists(d+"://")]
         logging.info(available_drives)
         return available_drives
     # TODO: for linux
@@ -71,7 +71,7 @@ def getfilepaths(ext, **kwargs):
     fname = kwargs.get("fname", None)
     if not fname or not isinstance(fname, str):
         return []
-    all_drives = getdrives()[0]
+    all_drives = getdrives()
     # all_drives = '.'
 
     for root, dirs, files in tqdm(os.walk(all_drives, topdown=True)):
