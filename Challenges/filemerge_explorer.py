@@ -20,17 +20,13 @@ def getdt():
     return datetime.datetime.now().strftime('%y-%m-%d_%a_%H_%M_%S')  # 21-04-10_Sat_20_53_19
 
 
-# dt = datetime.datetime.now().strftime('%y-%m-%d_%a_%H_%M_%S')  # 21-04-10_Sat_20:53:19
-finalmerge = {'.txt': f'mergetxt_{getdt()}.txt', '.pdf': f'mergepdf_{getdt()}.pdf',
-              '.docx': f'mergedocx_{getdt()}.docx', '.doc': f'mergeddoc{getdt()}.doc',
-              'other': "SearchName"}
-
+finalmerge = lambda ex: "merge"+ex[1:]+"_"+getdt()+ex
 allFilesPath = []
 # Initialising the logger file here.
 # logging.basicConfig(filename='logtest_gui.log', level=logging.INFO, format='%(levelname)s %(asctime)s %(message)s')
 logging.basicConfig(filename='logtest_gui.log',
                     level=logging.INFO,
-                    format='%(asctime)s %(module)s %(name)s.%(funcName)s +%(lineno)s: %(levelname)-8s %(message)s',
+                    format='%(asctime)s %(levelname)s %(message)s',
                     )
 
 
@@ -142,7 +138,7 @@ def readfile(ext, filepath):
 
     elif ext == '.pdf':
         pdfmerger = PyPDF2.PdfFileMerger()
-        pdfwritepath = finalmerge.get(ext)
+        pdfwritepath = finalmerge(ext)
         if os.path.exists(pdfwritepath):
             pdfs = [filepath, pdfwritepath]
         else:
@@ -167,7 +163,7 @@ def writefile(ext, content_obj, **kwargs):
     :param kwargs:
     :return: saved path of the merged files
     """
-    ret = finalmerge.get(ext)
+    ret = finalmerge(ext)
     # if content_obj is None:
     #     print("Content object is None")
     #     return None
@@ -213,7 +209,7 @@ def combine_word_documents(files):
         for element in sub_doc.element.body:
             merged_document.element.body.append(element)
 
-    merged_document.save(finalmerge['.docx'])
+    merged_document.save(finalmerge('.docx'))
 
 
 def mergeFiles():
@@ -249,8 +245,8 @@ def mergeFiles():
 
     if len(allFilesPath) > 0:
         answer.delete(1.0, END)
-        answer.insert(INSERT, f"Merged files successfully saved at {finalmerge[extn]}. ")
-        logging.info(f"Merged files successfully saved at {finalmerge[extn]}. ")
+        answer.insert(INSERT, f"Merged files successfully saved at {finalmerge(extn)}. ")
+        logging.info(f"Merged files successfully saved at {finalmerge(extn)}. ")
         logging.info("Done saving the files. ")
         print("Done saving the files. ")
     else:
@@ -327,3 +323,4 @@ button.pack()
 
 root.configure(background='ivory3')
 root.mainloop()
+# Screenshot 2021-03-30.png
