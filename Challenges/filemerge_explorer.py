@@ -314,7 +314,7 @@ l1.pack()
 extn_options = [".txt", ".pdf", ".docx", ".doc", 'other']
 cmb = ttk.Combobox(bottomframe, value=extn_options, width=15)
 
-cmb.current(-1)
+cmb.current(4)
 cmb.pack()
 
 # cmb.bind("<<ComboboxSelected>>", mergeFiles)
