@@ -278,6 +278,18 @@ def search_click(*args):
         print("NO files found yet")
 
 
+def clear_click():
+    """
+    This function clears the data of the application in the previous run.
+    :return: None
+    """
+    entry.delete(0, END)
+    entry.insert(0, "")
+    cmb.current(4)
+    allFilesPath.clear()
+    return None
+
+
 root = Tk()
 root.title("Merge Explorer")
 
@@ -320,6 +332,9 @@ cmb.pack()
 # cmb.bind("<<ComboboxSelected>>", mergeFiles)
 button = Button(bottomframe, text="Merge", command=mergeFiles)
 button.pack()
+
+clear_button = Button(bottomframe, text="Clear", command=clear_click)
+clear_button.pack()
 
 root.configure(background='ivory3')
 root.mainloop()
