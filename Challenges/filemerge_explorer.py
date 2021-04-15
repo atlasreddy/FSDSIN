@@ -20,7 +20,7 @@ def getdt():
     return datetime.datetime.now().strftime('%y-%m-%d_%a_%H_%M_%S')  # 21-04-10_Sat_20_53_19
 
 
-finalmerge = lambda ex: "merge"+ex[1:]+"_"+getdt()+ex
+finalmerge = lambda ex,fname: "merge"+ex[1:]+"_"+fname+ex
 allFilesPath = []
 # Initialising the logger file here.
 # logging.basicConfig(filename='logtest_gui.log', level=logging.INFO, format='%(levelname)s %(asctime)s %(message)s')
@@ -136,26 +136,26 @@ def readfile(ext, filepath):
     #
     #     return merged_document
 
-    elif ext == '.pdf':
-        pdfmerger = PyPDF2.PdfFileMerger()
-        pdfwritepath = finalmerge(ext)
-        if os.path.exists(pdfwritepath):
-            pdfs = [filepath, pdfwritepath]
-        else:
-            pdfs = [filepath]
-        for pdf in pdfs:
-            try:
-                with open(pdf, 'rb') as f:
-                    pdfmerger.append(PyPDF2.PdfFileReader(f))
-            except Exception as e:
-                logging.exception(e)
-                logging.error("Failed file " + pdf)
-
-        return pdfmerger
+    # elif ext == '.pdf':
+    #     pdfmerger = PyPDF2.PdfFileMerger()
+    #     pdfwritepath = finalmerge(ext)
+    #     if os.path.exists(pdfwritepath):
+    #         pdfs = [filepath, pdfwritepath]
+    #     else:
+    #         pdfs = [filepath]
+    #     for pdf in pdfs:
+    #         try:
+    #             with open(pdf, 'rb') as f:
+    #                 pdfmerger.append(PyPDF2.PdfFileReader(f))
+    #         except Exception as e:
+    #             logging.exception(e)
+    #             logging.error("Failed file " + pdf)
+    #
+    #     return pdfmerger
     return ret
 
 
-def writefile(ext, content_obj, **kwargs):
+def writefile(ext, fname, content_obj, **kwargs):
     """
     This function takes the writer object and saves the file.
     :param ext: extension of the file
@@ -163,10 +163,10 @@ def writefile(ext, content_obj, **kwargs):
     :param kwargs:
     :return: saved path of the merged files
     """
-    ret = finalmerge(ext)
-    # if content_obj is None:
-    #     print("Content object is None")
-    #     return None
+    ret = finalmerge(ext, fname)
+    if content_obj is None:
+        logging.info("Content object is None")
+        return None
     if ext == '.txt':
         try:
             with open(ret, 'ab') as outfile:
@@ -181,17 +181,17 @@ def writefile(ext, content_obj, **kwargs):
     #     except Exception as e:
     #         logging.exception(e)
     #         logging.error("docx merging failed... ")
-    elif ext == '.pdf':
-        try:
-            with open(ret, 'wb') as outfile:
-                content_obj.write(outfile)
-        except Exception as e:
-            logging.exception(e)
-            logging.error("Merging Failed... ")
+    # elif ext == '.pdf':
+    #     try:
+    #         with open(ret, 'wb') as outfile:
+    #             content_obj.write(outfile)
+    #     except Exception as e:
+    #         logging.exception(e)
+    #         logging.error("Merging Failed... ")
     return ret
 
 
-def combine_word_documents(files):
+def combine_word_documents(files, entstring):
     """
     This function is to merge and save the word documents.
     :param files: docx or doc filepaths
@@ -209,7 +209,20 @@ def combine_word_documents(files):
         for element in sub_doc.element.body:
             merged_document.element.body.append(element)
 
-    merged_document.save(finalmerge('.docx'))
+    merged_document.save(finalmerge('.docx', entstring))
+
+
+def combine_pdf_files(files, entstring):
+    # creating pdf file merger object
+    pdfMerger = PyPDF2.PdfFileMerger()
+    # appending pdfs one by one
+    for pdf in files:
+        with open(pdf, 'rb') as f:
+            pdfMerger.append(PyPDF2.PdfFileReader(f))
+
+    # writing combined pdf to output pdf file
+    with open(finalmerge('.pdf', entstring), 'wb') as f:
+        pdfMerger.write(f)
 
 
 def mergeFiles():
@@ -224,29 +237,32 @@ def mergeFiles():
 
     fname1 = entry.get()
     fname, ext = '.'.join(fname1.split('.')[:-1]).lower(), fname1.split('.')[-1].lower()
-    if extn in ('.docx', '.doc') and ext in ('docx', 'doc'):
-        combine_word_documents(allFilesPath)
-    elif extn in ('.pdf', '.txt') and ext in ('pdf', 'txt'):
-        for filepath in allFilesPath:
-            cobj = readfile(extn, filepath)
-            writefile(extn, cobj)
-    else:
-        logging.info("extension not matched., continuing for zipping the files ")
-        # fname, ext = '.'.join(fname1.split('.')[:-1]).lower(), fname1.split('.')[-1].lower()
-        try:
-            if len(allFilesPath) > 0:
-                with ZipFile(str(fname1) + "_" + getdt() + ".zip", 'w') as outzipfile:
-                    for file in allFilesPath:
-                        outzipfile.write(file)
-                logging.info("Files zipped and saved here. ")
-        except Exception as e:
-            logging.error("Failed to zip the files. ")
-            logging.exception(e)
 
     if len(allFilesPath) > 0:
+        if extn in ('.docx', '.doc') and ext in ('docx', 'doc'):
+            combine_word_documents(allFilesPath,entstring = fname)
+        elif extn in ('.pdf',) and ext in ('pdf',):
+            combine_pdf_files(allFilesPath, entstring = fname)
+        elif extn in ('.txt',) and ext in ('txt',):
+            for filepath in allFilesPath:
+                cobj = readfile(extn, filepath)
+                writefile(extn,fname, cobj)
+        else:
+            logging.info("extension not matched., continuing for zipping the files ")
+            # fname, ext = '.'.join(fname1.split('.')[:-1]).lower(), fname1.split('.')[-1].lower()
+            try:
+                if len(allFilesPath) > 0:
+                    with ZipFile(str(fname1) + "_" + getdt() + ".zip", 'w') as outzipfile:
+                        for file in allFilesPath:
+                            outzipfile.write(file)
+                    logging.info("Files zipped and saved here. ")
+            except Exception as e:
+                logging.error("Failed to zip the files. ")
+                logging.exception(e)
+
         answer.delete(1.0, END)
-        answer.insert(INSERT, f"Merged files successfully saved at {finalmerge(extn)}. ")
-        logging.info(f"Merged files successfully saved at {finalmerge(extn)}. ")
+        answer.insert(INSERT, f"Merged files successfully saved at {finalmerge(extn, fname)}. ")
+        logging.info(f"Merged files successfully saved at {finalmerge(extn, fname)}. ")
         logging.info("Done saving the files. ")
         print("Done saving the files. ")
     else:
@@ -284,8 +300,9 @@ def clear_click():
     :return: None
     """
     entry.delete(0, END)
-    entry.insert(0, "")
-    cmb.current(4)
+    # answer.delete(0, END)
+    # entry.insert(0, "")
+    # cmb.current(4)
     allFilesPath.clear()
     return None
 
@@ -339,3 +356,6 @@ clear_button.pack()
 root.configure(background='ivory3')
 root.mainloop()
 # Screenshot 2021-03-30.png
+# testsample.pdf
+# tomerge.txt
+# assignment.docx
