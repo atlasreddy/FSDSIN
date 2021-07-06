@@ -49,6 +49,7 @@ def uncensor_q3():
 
 
 def get_domain_q4():
+    # !pip install dnspython
     import dns.resolver
 
     def get_domain(ip_addr):
